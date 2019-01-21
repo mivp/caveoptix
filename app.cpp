@@ -58,10 +58,11 @@ static const char *g_screenquad_frag =
 
 
 OptixApp::OptixApp(): m_initialized(false), m_framecount(0),
-						context(0), use_pbo(true), gl_tex_id(0)
+						context(0), use_pbo(true), gl_tex_id(0),
+                        gl_screen_tex(0)
 {
-    tutorial_number = 10;
-    tutorial_ptx = sutil::getPtxString(NULL, "tutorial10.cu");
+    tutorial_number = 1;
+    tutorial_ptx = sutil::getPtxString(NULL, "tutorial1.cu");
 }
 
 OptixApp::~OptixApp() {
@@ -232,13 +233,14 @@ void OptixApp::display(const float V[16], const float P[16], const float campos[
         float focal = 1 / tan(FOV/2);
         
         camera_eye = optix::make_float3(campos[0], campos[1], campos[2]);
+        //camera_eye = optix::make_float3(V[12], V[13], V[14]);
         camera_u = optix::make_float3(V[0], V[4], V[8]);
         camera_v = -1*optix::make_float3(V[1], V[5], V[9]);
         camera_w = -1*optix::make_float3(V[2], V[6], V[10]);
         
         float fovY = 0.5 * FOV;
         float fovX = atan(tan(FOV)*aspect_ratio);
-        float ulen = focal * tan(FOV); //* aspect_ratio;
+        float ulen = focal * tan(FOV); // * aspect_ratio;
         float vlen = focal * tan(fovY);
         camera_u = ulen * camera_u;
         camera_v = vlen * camera_v;
@@ -359,6 +361,12 @@ void OptixApp::display(const float V[16], const float P[16], const float campos[
     
 	m_framecount++;
 }
+
+/*
+void OptixApp::display() {
+	if(!m_initialized) return;
+}
+*/
 
 optix::float4 OptixApp::make_plane( optix::float3 n, optix::float3 p ) {
     n = normalize(n);

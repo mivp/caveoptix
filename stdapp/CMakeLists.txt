@@ -65,6 +65,7 @@ set( srcs
         ../sutil/sutil.cpp
         # optix example
         ../tutorial.h
+        ../tutorial1.cu
         ../tutorial10.cu
         ../box.cu
         ../commonStructs.h
