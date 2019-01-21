@@ -99,7 +99,11 @@ void OptixApp::init(int w, int h) {
     context["output_buffer"]->set( buffer );
 
     // Ray generation program
+#ifdef OMEGALIB_MODULE
+    const std::string camera_name = "pinhole_camera_omegalib";
+#else
     const std::string camera_name = "pinhole_camera";
+#endif
     optix::Program ray_gen_program = context->createProgramFromPTXString( tutorial_ptx, camera_name );
     context->setRayGenerationProgram( 0, ray_gen_program );
 
@@ -362,11 +366,102 @@ void OptixApp::display(const float V[16], const float P[16], const float campos[
 	m_framecount++;
 }
 
-/*
-void OptixApp::display() {
-	if(!m_initialized) return;
+// for Omegalib CAVE
+void OptixApp::display(const float cam_pos[3], const float cam_ori[4], const float head_off[3], 
+                const float tl[3], const float bl[3], const float br[3]) {
+
+    if(!m_initialized) return;
+
+    optix::float3 camera_position = optix::make_float3(cam_pos[0], cam_pos[1], cam_pos[2]);
+    optix::float4 camera_orientation = optix::make_float4(cam_ori[0], cam_ori[1], cam_ori[2], cam_ori[3]);
+    optix::float3 head_offset = optix::make_float3(head_off[0], head_off[1], head_off[2]);
+    optix::float3 tile_tl = optix::make_float3(tl[0], tl[1], tl[2]);
+    optix::float3 tile_bl = optix::make_float3(bl[0], bl[1], bl[2]);
+    optix::float3 tile_br = optix::make_float3(br[0], br[1], br[2]);
+
+    // DEBUG
+    if(m_framecount == 0) {
+        cout << "cam pos: " << camera_position << endl;
+        cout << "cam ori: " << camera_orientation << endl;
+        cout << "head offset: " << head_offset << endl;
+        cout << "tile tl: " << tile_tl << " bl: " << tile_bl << " br: " << tile_br << endl;
+    }
+
+    context["camera_position"]->setFloat( camera_position );
+    context["camera_orientation"  ]->setFloat( camera_orientation );
+    context["head_offset"  ]->setFloat( head_offset );
+    context["tile_tl"  ]->setFloat( tile_tl );
+    context["tile_bl"  ]->setFloat( tile_bl );
+    context["tile_br"  ]->setFloat( tile_br );
+
+    // render
+    context->launch( 0, m_width, m_height );
+    optix::Buffer buffer = context[ "output_buffer" ]->getBuffer();
+    
+    // Query buffer information
+    RTsize buffer_width_rts, buffer_height_rts;
+    buffer->getSize( buffer_width_rts, buffer_height_rts );
+    uint32_t width  = static_cast<int>(buffer_width_rts);
+    uint32_t height = static_cast<int>(buffer_height_rts);
+    RTformat buffer_format = buffer->getFormat();
+    //cout << width << " " << height << endl;
+
+    if( !gl_screen_tex )
+    {
+        glGenTextures( 1, &gl_screen_tex );
+        glBindTexture( GL_TEXTURE_2D, gl_screen_tex );
+
+        // Change these to GL_LINEAR for super- or sub-sampling
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+
+        // GL_CLAMP_TO_EDGE for linear filtering, not relevant for nearest.
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        cout << "gl_screen_tex: " << gl_screen_tex << endl;
+    }
+
+    glBindTexture( GL_TEXTURE_2D, gl_screen_tex );
+
+    // send PBO or host-mapped image data to texture
+    const unsigned pboId = buffer->getGLBOId();
+    GLvoid* imageData = 0;
+    if( pboId )
+        glBindBuffer( GL_PIXEL_UNPACK_BUFFER, pboId );
+    else
+        imageData = buffer->map( 0, RT_BUFFER_MAP_READ );
+
+    RTsize elmt_size = buffer->getElementSize();
+    if      ( elmt_size % 8 == 0) glPixelStorei(GL_UNPACK_ALIGNMENT, 8);
+    else if ( elmt_size % 4 == 0) glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
+    else if ( elmt_size % 2 == 0) glPixelStorei(GL_UNPACK_ALIGNMENT, 2);
+    else                          glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+
+    GLenum pixel_format = glFormatFromBufferFormat(BUFFER_PIXEL_FORMAT_DEFAULT, buffer_format);
+
+    if( buffer_format == RT_FORMAT_UNSIGNED_BYTE4)
+        glTexImage2D( GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, pixel_format, GL_UNSIGNED_BYTE, imageData);
+    else if(buffer_format == RT_FORMAT_FLOAT4)
+        glTexImage2D( GL_TEXTURE_2D, 0, GL_RGBA32F_ARB, width, height, 0, pixel_format, GL_FLOAT, imageData );
+    else if(buffer_format == RT_FORMAT_FLOAT3)
+        glTexImage2D( GL_TEXTURE_2D, 0, GL_RGB32F_ARB, width, height, 0, pixel_format, GL_FLOAT, imageData );
+    else if(buffer_format == RT_FORMAT_FLOAT)
+        glTexImage2D( GL_TEXTURE_2D, 0, GL_LUMINANCE32F_ARB, width, height, 0, pixel_format, GL_FLOAT, imageData );
+    else {
+        cout << "Unkown buffer format" << endl;
+        exit(1);
+        // throw Exception( "Unknown buffer format" );
+    }
+
+    if( pboId )
+        glBindBuffer( GL_PIXEL_UNPACK_BUFFER, 0 );
+    else
+        buffer->unmap();
+
+    renderScreenQuadGL ( gl_screen_tex, 0, width, height );
+
+    m_framecount++;
 }
-*/
 
 optix::float4 OptixApp::make_plane( optix::float3 n, optix::float3 p ) {
     n = normalize(n);

@@ -47,6 +47,8 @@ public:
 
     void init(int w, int h);
     void display(const float V[16], const float P[16], const float pos[3]);
+    void display(const float cam_pos[3], const float cam_ori[4], const float head_offset[3], 
+                const float tile_tl[3], const float tile_bl[3], const float tile_br[3]);
 
     
 private:

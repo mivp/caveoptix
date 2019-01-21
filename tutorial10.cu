@@ -28,6 +28,7 @@
 
 #include "tutorial.h"
 #include <optixu/optixu_aabb.h>
+#include <optixu/optixu_quaternion_namespace.h>
 
 rtDeclareVariable(float3, geometric_normal, attribute geometric_normal, ); 
 rtDeclareVariable(float3, shading_normal,   attribute shading_normal, ); 
@@ -55,6 +56,13 @@ rtDeclareVariable(float3,        W, , );
 rtDeclareVariable(float3,        bad_color, , );
 rtBuffer<uchar4, 2>              output_buffer;
 
+rtDeclareVariable(float3,       camera_position, , );
+rtDeclareVariable(float4,       camera_orientation, , );
+rtDeclareVariable(float3,       head_offset, , );
+rtDeclareVariable(float3,       tile_tl, , );
+rtDeclareVariable(float3,       tile_bl, , );
+rtDeclareVariable(float3,       tile_br, , );
+
 RT_PROGRAM void pinhole_camera()
 {
   size_t2 screen = output_buffer.size();
@@ -74,6 +82,33 @@ RT_PROGRAM void pinhole_camera()
   output_buffer[launch_index] = make_color( prd.result );
 }
 
+RT_PROGRAM void pinhole_camera_omegalib()
+{
+  size_t2 screen = output_buffer.size();
+
+  float2 pxy = make_float2(launch_index) / make_float2(screen);
+  float3 vba = tile_tl - tile_bl;
+  float3 vbc = tile_br - tile_bl;
+
+  float3 ray_origin = tile_bl + vba * pxy.y + vbc * pxy.x;
+  float3 ray_direction = ray_origin - head_offset;
+
+  optix::Quaternion ori(camera_orientation.x, camera_orientation.y, camera_orientation.z, camera_orientation.w);
+  ray_origin = ori * ray_origin;
+  ray_origin = ray_origin + camera_position;
+
+  ray_direction = normalize(ori * ray_direction);
+
+  optix::Ray ray(ray_origin, ray_direction, radiance_ray_type, scene_epsilon );
+
+  PerRayData_radiance prd;
+  prd.importance = 1.f;
+  prd.depth = 0;
+
+  rtTrace(top_object, ray, prd);
+
+  output_buffer[launch_index] = make_color( prd.result );
+}
 
 //
 // Environment map background
