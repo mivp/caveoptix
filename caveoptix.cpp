@@ -16,24 +16,6 @@ public:
     OptixRenderModule() :
         EngineModule("OptixRenderModule"), visible(true), app(0), initalized(false)
     {
-        DisplayConfig& dcfg = SystemManager::instance()->getDisplaySystem()->getDisplayConfig();
-        // find host node.
-        std::cout << "OptixRenderModule() " << SystemManager::instance()->getHostname() << std::endl;
-        string hostname = SystemManager::instance()->getHostname();
-        int x = 0;
-        if(hostname.length() > 0) {
-            hostname = hostname.substr(1, 2);
-            int index = atoi(hostname.c_str());
-            x = (index - 1) * 1366;
-        }
-        cout << hostname << " x: " << x << endl;
-        DisplayTileConfig* dtc = dcfg.getTileFromPixel(x, 0);
-        for(int j=0; j<3; j++) {
-            tile_tl[j] = dtc->topLeft[j];
-            tile_bl[j] = dtc->bottomLeft[j];
-            tile_br[j] = dtc->bottomRight[j];
-        }
-        
     }
 
     virtual void initializeRenderer(Renderer* r);
@@ -82,6 +64,14 @@ public:
 
             if(!module->initalized && module->app) {
                 module->app->init(context.viewport.width(), context.viewport.height());
+
+                DisplayTileConfig* dtc = context.tile;
+                for(int j=0; j<3; j++) {
+                    module->tile_tl[j] = dtc->topLeft[j];
+                    module->tile_bl[j] = dtc->bottomLeft[j];
+                    module->tile_br[j] = dtc->bottomRight[j];
+                }
+
                 module->initalized = true;
             }
 
