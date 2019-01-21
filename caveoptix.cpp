@@ -2,6 +2,7 @@
 #include <omegaGl.h>
 #include <iostream>
 #include <vector>
+#include <string>
 
 #include "app.h"
 
@@ -18,22 +19,21 @@ public:
         DisplayConfig& dcfg = SystemManager::instance()->getDisplaySystem()->getDisplayConfig();
         // find host node.
         std::cout << "OptixRenderModule() " << SystemManager::instance()->getHostname() << std::endl;
-        std::cout << "numNodes: " << dcfg.numNodes << endl;
-        for(int i = 0; i < dcfg.numNodes; i++)
-        {
-            if(dcfg.nodes[i].hostname == SystemManager::instance()->getHostname() 
-                || dcfg.nodes[i].hostname == "local")
-            {
-                // NOTE: this just returns the position of the first tile hosted on the specified node.
-                // std::cout << i << " name: " << dcfg.nodes[i].hostname << std::endl;
-                DisplayTileConfig* dtc = dcfg.nodes[i].tiles[0];
-                for(int j=0; j<3; j++) {
-                    tile_tl[j] = dtc->topLeft[j];
-                    tile_bl[j] = dtc->bottomLeft[j];
-                    tile_br[j] = dtc->bottomRight[j];
-                }
-            }
+        string hostname = SystemManager::instance()->getHostname();
+        int x = 0;
+        if(hostname.length() > 0) {
+            hostname = hostname.substr(1, 2);
+            int index = atoi(hostname.c_str());
+            x = (index - 1) * 1366;
         }
+        cout << hostname << " x: " << x << endl;
+        DisplayTileConfig* dtc = dcfg.getTileFromPixel(x, 0);
+        for(int j=0; j<3; j++) {
+            tile_tl[j] = dtc->topLeft[j];
+            tile_bl[j] = dtc->bottomLeft[j];
+            tile_br[j] = dtc->bottomRight[j];
+        }
+        
     }
 
     virtual void initializeRenderer(Renderer* r);
@@ -84,7 +84,7 @@ public:
                 module->app->init(context.viewport.width(), context.viewport.height());
                 module->initalized = true;
             }
-	
+
     	    if(module->initalized && module->visible)
     	    { 
 		        Camera* cam = context.camera;
@@ -110,8 +110,6 @@ public:
                 module->app->display(MV, P, campos);
                 */
                 
-		        
-
                 if(oglError) return;
     	    }
             

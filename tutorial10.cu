@@ -90,7 +90,7 @@ RT_PROGRAM void pinhole_camera_omegalib()
   float3 vba = tile_tl - tile_bl;
   float3 vbc = tile_br - tile_bl;
 
-  float3 ray_origin = tile_bl + vba * pxy.y + vbc * pxy.x;
+  float3 ray_origin = tile_bl + vba * (1-pxy.y) + vbc * pxy.x;
   float3 ray_direction = ray_origin - head_offset;
 
   optix::Quaternion ori(camera_orientation.x, camera_orientation.y, camera_orientation.z, camera_orientation.w);
