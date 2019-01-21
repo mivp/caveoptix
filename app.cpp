@@ -61,8 +61,8 @@ OptixApp::OptixApp(): m_initialized(false), m_framecount(0),
 						context(0), use_pbo(true), gl_tex_id(0),
                         gl_screen_tex(0)
 {
-    tutorial_number = 1;
-    tutorial_ptx = sutil::getPtxString(NULL, "tutorial1.cu");
+    tutorial_number = 10;
+    tutorial_ptx = sutil::getPtxString(NULL, "tutorial10.cu");
 }
 
 OptixApp::~OptixApp() {
@@ -374,7 +374,8 @@ void OptixApp::display(const float cam_pos[3], const float cam_ori[4], const flo
 
     optix::float3 camera_position = optix::make_float3(cam_pos[0], cam_pos[1], cam_pos[2]);
     optix::float4 camera_orientation = optix::make_float4(cam_ori[0], cam_ori[1], cam_ori[2], cam_ori[3]);
-    optix::float3 head_offset = optix::make_float3(head_off[0], head_off[1], head_off[2]);
+    //optix::float3 head_offset = optix::make_float3(head_off[0], head_off[1], head_off[2]);
+    optix::float3 head_offset = optix::make_float3(0, 2, 0);
     optix::float3 tile_tl = optix::make_float3(tl[0], tl[1], tl[2]);
     optix::float3 tile_bl = optix::make_float3(bl[0], bl[1], bl[2]);
     optix::float3 tile_br = optix::make_float3(br[0], br[1], br[2]);
